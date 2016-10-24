@@ -6,10 +6,9 @@ module StupidSMS
       new(**args).call
     end
 
-    def initialize(sms_queue:, template:, country_code:, dry_run:, max_threads:)
+    def initialize(sms_queue:, template:, dry_run:, max_threads:)
       @sms_queue = sms_queue
       @template = template
-      @country_code = country_code
       @dry_run = dry_run
       @max_threads = Integer(max_threads)
 
@@ -25,6 +24,7 @@ module StupidSMS
 
           results = { send_count: 0, longest_body: 0, failed_count: 0 }
           until @sms_queue.empty?
+            # TODO: Consider capturing all errors and only log them
             sms_result = process_sms(
               client: client,
               person: @sms_queue.pop
@@ -52,8 +52,8 @@ module StupidSMS
     def process_sms(client:, person:)
       failed_result = { send_count: 0, length: 0, success: false }
 
-      phone = Phone.normalize(person.phone, country_code: @country_code)
-      if Phone.invalid?(phone, country_code: @country_code)
+      phone = Phone.normalize(person.phone)
+      if Phone.invalid?(phone)
         puts "[StupidSMS ERROR] Invalid phone number: #{person.phone}"
         return failed_result
       end
@@ -95,7 +95,10 @@ module StupidSMS
     end
 
     def build_sms_client
-      SMSClient.new(account_sid: StupidSMS.account_sid, auth_token: StupidSMS.auth_token)
+      account_sid = StupidSMS.configuration.account_sid
+      auth_token = StupidSMS.configuration.auth_token
+
+      SMSClient.new(account_sid: account_sid, auth_token: auth_token)
     end
   end
 end

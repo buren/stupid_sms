@@ -14,7 +14,7 @@ require 'stupid_sms/process_queue'
 module StupidSMS
   MAX_THREADS = 5
 
-  def self.send_in_bulk(csv_string:, template:, country_code: :se, delimiter: ',', dry_run: false, max_threads: MAX_THREADS)
+  def self.send_in_bulk(csv_string:, template:, delimiter: ',', dry_run: false, max_threads: MAX_THREADS)
     csv = HoneyFormat::CSV.new(csv_string, delimiter: delimiter)
 
     sms_queue = Queue.new
@@ -23,7 +23,6 @@ module StupidSMS
     summary = ProcessQueue.call(
       sms_queue: sms_queue,
       template: template,
-      country_code: country_code,
       dry_run: dry_run,
       max_threads: max_threads
     )
@@ -37,27 +36,35 @@ module StupidSMS
     puts "Sent messages: #{summary.fetch(:successfully_sent_count)}"
   end
 
-  def self.from_number=(from_number)
-    @from_number = from_number
+  class << self
+    attr_accessor :configuration
   end
 
-  def self.auth_token=(auth_token)
-    @auth_token = auth_token
+  def self.configure
+    self.configuration ||= Configuration.new
+    yield(configuration)
   end
 
-  def self.account_sid=(account_sid)
-    @account_sid = account_sid
-  end
+  class Configuration
+    attr_accessor :from_number, :account_sid, :auth_token, :country_code
 
-  def self.from_number
-    @from_number || ENV.fetch('TWILIO_NUMBER')
-  end
+    def initialize
+      @from_number = nil
+      @auth_token = nil
+      @account_sid = nil
+      @country_code = :se
+    end
 
-  def self.auth_token
-    @auth_token || ENV.fetch('TWILIO_AUTH_TOKEN')
-  end
+    def from_number
+      @from_number || ENV.fetch('TWILIO_NUMBER')
+    end
 
-  def self.account_sid
-    @account_sid || ENV.fetch('TWILIO_ACCOUNT_SID')
+    def auth_token
+      @auth_token || ENV.fetch('TWILIO_AUTH_TOKEN')
+    end
+
+    def account_sid
+      @account_sid || ENV.fetch('TWILIO_ACCOUNT_SID')
+    end
   end
 end
