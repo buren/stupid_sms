@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+set -euo pipefail
+IFS=$'\n\t'
+
+bundle install
+
+echo
+echo
+echo '[StupidSMS]'
+echo "If you haven't already, please set the ENV variables:
+    TWILIO_ACCOUNT_SID'
+    TWILIO_AUTH_TOKEN'
+    TWILIO_NUMBER'
+"

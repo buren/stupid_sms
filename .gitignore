@@ -1,0 +1,16 @@
+/.bundle/
+/.yardoc
+/Gemfile.lock
+/_yardoc/
+/coverage/
+/doc/
+/pkg/
+/spec/reports/
+/tmp/
+
+.env
+test.csv
+test1.csv
+template.txt
+
+Gemfile.lock

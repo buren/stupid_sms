@@ -1,0 +1,52 @@
+#!/usr/bin/env ruby
+
+require 'bundler/setup' # TODO: Remove!
+require 'stupid_sms'
+
+csv_filename = nil
+template_filename = nil
+dry_run = true
+delimiter = ','
+
+optparse = OptionParser.new do |parser|
+  parser.on('--csv=file.csv', String, 'CSV file path (a phone header column is required)') do |value|
+    csv_filename = value
+  end
+
+  parser.on('--template=template.txt', String, 'Template file path (note: you need to escape % with %%)') do |value|
+    template_filename = value
+  end
+
+  parser.on('--delimiter=;', String, 'CSV delimiter (default: ,)') do |value|
+    delimiter = value
+  end
+
+  parser.on('--[no-]dry-run', 'Dry run (default: true)') do |value|
+    dry_run = value
+  end
+
+  parser.on('-h', '--help', 'How to use') do
+    puts parser
+    exit
+  end
+end
+
+optparse.parse!
+
+if csv_filename.nil? || csv_filename.strip.empty?
+  raise OptionParser::MissingArgument, "'--csv' 'Is required"
+end
+
+if template_filename.nil? || template_filename.strip.empty?
+  raise OptionParser::MissingArgument, "'--template' 'Is required"
+end
+
+csv = File.read(csv_filename)
+template = File.read(template_filename)
+
+StupidSMS.send_bulk_message(
+  csv_string: csv,
+  delimiter: delimiter,
+  template: template,
+  dry_run: dry_run
+)
