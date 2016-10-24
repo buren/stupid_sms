@@ -8,6 +8,12 @@ template_filename = nil
 dry_run = true
 delimiter = ','
 country_code = 'se'
+max_threads = StupidSMS::MAX_THREADS
+
+# Twilio Auth
+from_number = nil
+auth_token = nil
+account_sid = nil
 
 optparse = OptionParser.new do |parser|
   parser.on('--csv=file.csv', String, 'CSV file path (a phone header column is required)') do |value|
@@ -30,6 +36,18 @@ optparse = OptionParser.new do |parser|
     max_threads = value
   end
 
+  parser.on('--from-number="+46735000000"', String, 'Twilio from number') do |value|
+    from_number = value.strip
+  end
+
+  parser.on('--account-sid=se', String, 'Twilio account SID') do |value|
+    account_sid = value.strip
+  end
+
+  parser.on('--auth-token=XXXYYYZZZ', String, 'Twilio auth token') do |value|
+    auth_token = value.strip
+  end
+
   parser.on('--[no-]dry-run', 'Dry run (default: true)') do |value|
     dry_run = value
   end
@@ -49,6 +67,10 @@ end
 if template_filename.nil? || template_filename.strip.empty?
   raise OptionParser::MissingArgument, "'--template' 'Is required"
 end
+
+StupidSMS.from_number = from_number unless from_number.nil?
+StupidSMS.auth_token = auth_token unless auth_token.nil?
+StupidSMS.account_sid = account_sid unless account_sid.nil?
 
 csv = File.read(csv_filename)
 template = File.read(template_filename)
