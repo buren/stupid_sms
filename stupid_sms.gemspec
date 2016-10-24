@@ -11,7 +11,7 @@ Gem::Specification.new do |spec|
 
   spec.summary       = %q{Send SMS with ease.}
   spec.description   = %q{Send SMS with ease, either one by one or in bulk.}
-  spec.homepage      = 'https://github.com/young-skilled/stupid_sms'
+  spec.homepage      = 'https://github.com/buren/stupid_sms'
   spec.license       = 'MIT'
 
   spec.files         = `git ls-files -z`.split("\x0").reject { |f| f.match(%r{^(test|spec|features)/}) }
