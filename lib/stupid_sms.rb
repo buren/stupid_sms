@@ -15,23 +15,24 @@ module StupidSMS
   def self.send_bulk_message(csv_string:, delimiter: ',', template:, dry_run: false)
     csv = HoneyFormat::CSV.new(csv_string, delimiter: delimiter)
 
-    longest_body = 0
-    successfully_sent_count = 0
-
     sms_queue = Queue.new
     csv.each_row { |person| sms_queue << person }
+
+    max_threads = MAX_THREADS
 
     summary = process(
       sms_queue: sms_queue,
       template: template,
       dry_run: dry_run,
-      max_threads: MAX_THREADS
+      max_threads: max_threads
     )
 
     puts '============================'
+    puts "Thread count:  #{max_threads}"
     puts "Dry run:       #{dry_run}"
     puts "Longest sms:   #{summary.fetch(:longest_body)}"
     puts "Recipients:    #{summary.fetch(:recipients_count)}"
+    puts "Failed count:  #{summary.fetch(:failed_count)}"
     puts "Sent messages: #{summary.fetch(:successfully_sent_count)}"
   end
 
@@ -39,13 +40,14 @@ module StupidSMS
     longest_body = 0
     successfully_sent_count = 0
     recipients_count = sms_queue.length
+    failed_count = 0
 
     threads = max_threads.times.map do
       Thread.new do
         # We need one client per Thread since the Twilio client is not thread safe
         client = SMSClient.new(account_sid: account_sid, auth_token: auth_token)
 
-        thread_results = { send_count: 0, longest_body: 0 }
+        thread_results = { send_count: 0, longest_body: 0, failed_count: 0 }
         until sms_queue.empty?
           result = process_sms(
             client: client,
@@ -55,6 +57,7 @@ module StupidSMS
           )
 
           thread_results[:send_count] += result.fetch(:send_count)
+          thread_results[:failed_count] += 1 unless result.fetch(:success)
 
           body_length = result.fetch(:length)
           if body_length > thread_results[:longest_body]
@@ -68,14 +71,16 @@ module StupidSMS
     threads.map(&:join) # Wait for each thread
     threads.map do |thread|
       result = thread.value
-      longest_body = result[:longest_body] if result[:longest_body] > longest_body
-      successfully_sent_count += result[:send_count]
+      longest_body = result[:longest_body] if result.fetch(:longest_body) > longest_body
+      successfully_sent_count += result.fetch(:send_count)
+      failed_count += result.fetch(:failed_count)
     end
 
     {
       longest_body: longest_body,
       successfully_sent_count: successfully_sent_count,
-      recipients_count: recipients_count
+      recipients_count: recipients_count,
+      failed_count: failed_count
     }
   end
 
@@ -84,7 +89,7 @@ module StupidSMS
 
     phone = normalize_phone(person.phone)
     if invalid_phone?(phone)
-      puts "[StupidSMS ERROR] Couldn't send SMS to phone number: #{person.phone}"
+      puts "[StupidSMS ERROR] Invalid phone number: #{person.phone}"
       return failed_result
     end
 

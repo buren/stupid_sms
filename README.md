@@ -46,8 +46,8 @@ name `first_name`.
 `file.csv`:
 
 ```csv
-phone, first_name
-+46735000000, Jacob
+phone,first_name
++46735000000,Jacob
 ```
 
 ```ruby
