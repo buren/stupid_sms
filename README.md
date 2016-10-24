@@ -1,6 +1,6 @@
 # StupidSMS
 
-Send text SMS using Twilio.
+Send bulk SMS using Twilio.
 
 ## Installation
 
