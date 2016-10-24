@@ -53,7 +53,7 @@ phone,first_name
 ```ruby
 csv = File.read('file.csv')
 template = 'Hi %{first_name}!'
-StupidSMS.send_bulk_message(csv_string: csv, template: template)
+StupidSMS.send_in_bulk(csv_string: csv, template: template)
 ```
 
 ```bash

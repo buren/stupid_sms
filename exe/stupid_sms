@@ -7,6 +7,7 @@ csv_filename = nil
 template_filename = nil
 dry_run = true
 delimiter = ','
+country_code = 'se'
 
 optparse = OptionParser.new do |parser|
   parser.on('--csv=file.csv', String, 'CSV file path (a phone header column is required)') do |value|
@@ -19,6 +20,14 @@ optparse = OptionParser.new do |parser|
 
   parser.on('--delimiter=;', String, 'CSV delimiter (default: ,)') do |value|
     delimiter = value
+  end
+
+  parser.on('--country_code=se', String, 'Country code (default: se)') do |value|
+    country_code = value
+  end
+
+  parser.on('--max_threads=5', Integer, "Max parallel threads (default: #{StupidSMS::MAX_THREADS})") do |value|
+    max_threads = value
   end
 
   parser.on('--[no-]dry-run', 'Dry run (default: true)') do |value|
@@ -44,9 +53,11 @@ end
 csv = File.read(csv_filename)
 template = File.read(template_filename)
 
-StupidSMS.send_bulk_message(
+StupidSMS.send_in_bulk(
   csv_string: csv,
   delimiter: delimiter,
+  country_code: country_code,
   template: template,
-  dry_run: dry_run
+  dry_run: dry_run,
+  max_threads: max_threads
 )
