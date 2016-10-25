@@ -2,7 +2,7 @@ require 'twilio-ruby'
 
 module StupidSMS
   class SMSClient
-    def initialize(account_sid:, auth_token:)
+    def initialize(account_sid: StupidSMS.configuration.account_sid, auth_token: StupidSMS.configuration.auth_token)
       @client = Twilio::REST::Client.new(account_sid, auth_token)
     end
 

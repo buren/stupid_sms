@@ -3,10 +3,18 @@
 require 'bundler/setup' # TODO: Remove!
 require 'stupid_sms'
 
+# Defaults
 csv_filename = nil
 template_filename = nil
 dry_run = true
 delimiter = ','
+country_code = 'se'
+max_threads = StupidSMS::MAX_THREADS
+
+# Twilio Auth
+from_number = nil
+auth_token = nil
+account_sid = nil
 
 optparse = OptionParser.new do |parser|
   parser.on('--csv=file.csv', String, 'CSV file path (a phone header column is required)') do |value|
@@ -19,6 +27,26 @@ optparse = OptionParser.new do |parser|
 
   parser.on('--delimiter=;', String, 'CSV delimiter (default: ,)') do |value|
     delimiter = value
+  end
+
+  parser.on('--country-code=se', String, 'Country code (default: se)') do |value|
+    country_code = value
+  end
+
+  parser.on('--max-threads=5', Integer, "Max parallel threads (default: #{StupidSMS::MAX_THREADS})") do |value|
+    max_threads = value
+  end
+
+  parser.on('--from-number="+46735000000"', String, 'Twilio from number') do |value|
+    from_number = value.strip
+  end
+
+  parser.on('--account-sid=se', String, 'Twilio account SID') do |value|
+    account_sid = value.strip
+  end
+
+  parser.on('--auth-token=XXXYYYZZZ', String, 'Twilio auth token') do |value|
+    auth_token = value.strip
   end
 
   parser.on('--[no-]dry-run', 'Dry run (default: true)') do |value|
@@ -41,12 +69,20 @@ if template_filename.nil? || template_filename.strip.empty?
   raise OptionParser::MissingArgument, "'--template' 'Is required"
 end
 
+StupidSMS.configure do |config|
+  config.from_number = from_number if from_number
+  config.auth_token = auth_token if auth_token
+  config.account_sid = account_sid if account_sid
+  config.country_code = country_code if country_code
+end
+
 csv = File.read(csv_filename)
 template = File.read(template_filename)
 
-StupidSMS.send_bulk_message(
+StupidSMS.send_in_bulk(
   csv_string: csv,
   delimiter: delimiter,
   template: template,
-  dry_run: dry_run
+  dry_run: dry_run,
+  max_threads: max_threads
 )

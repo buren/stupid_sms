@@ -1,90 +1,74 @@
-require 'stupid_sms/version'
-require 'stupid_sms/sms_client'
+# Stlib
+require 'thread'
 
-require 'global_phone'
+# Gems
 require 'honey_format'
 
+# Local
+require 'stupid_sms/version'
+require 'stupid_sms/sms_client'
+require 'stupid_sms/sms'
+require 'stupid_sms/phone'
+require 'stupid_sms/process_queue'
+
 module StupidSMS
-  GlobalPhone.db_path = 'global_phone.json'
+  MAX_THREADS = 5
 
-  MAX_SMS_LENGTH = 160.0
-
-  def self.send_bulk_message(csv_string:, delimiter: ',', template:, dry_run: false)
+  def self.send_in_bulk(csv_string:, template:, delimiter: ',', dry_run: false, max_threads: MAX_THREADS)
     csv = HoneyFormat::CSV.new(csv_string, delimiter: delimiter)
 
-    longest_body = 0
-    successfully_sent_count = 0
-    csv.each_row do |person|
-      phone = normalize_phone(person.phone)
-      if invalid_phone?(phone)
-        puts "[StupidSMS ERROR] Couldn't send SMS to phone number: #{person.phone}"
-        next
-      end
+    sms_queue = Queue.new
+    csv.each_row { |person| sms_queue << person }
 
-      body = template % person.to_h
-      longest_body = body.length if body.length > longest_body
-
-      send_status = if dry_run
-                      true
-                    else
-                      send_message(recipient: phone, body: body)
-                    end
-
-      if send_status
-        sms_count = (body.length / MAX_SMS_LENGTH).floor + 1 # Number of SMS sent
-        successfully_sent_count += sms_count
-      end
-    end
+    summary = ProcessQueue.call(
+      sms_queue: sms_queue,
+      template: template,
+      dry_run: dry_run,
+      max_threads: max_threads
+    )
 
     puts '============================'
+    puts "Thread count:  #{max_threads}"
     puts "Dry run:       #{dry_run}"
-    puts "Longest sms:   #{longest_body}"
-    puts "Recipients:    #{csv.rows.length}"
-    puts "Sent messages: #{successfully_sent_count}"
+    puts "Longest sms:   #{summary.fetch(:longest_body)}"
+    puts "Recipients:    #{summary.fetch(:recipients_count)}"
+    puts "Failed count:  #{summary.fetch(:failed_count)}"
+    puts "Sent messages: #{summary.fetch(:successfully_sent_count)}"
   end
 
-  def self.send_message(recipient:, body:)
-    client.send_message(from: from_number, to: recipient, body: body)
-    true
-  rescue Twilio::REST::RequestError => e # the user has unsubscribed
-    puts "[StupidSMS ERROR] Twilio::REST::RequestError to: #{recipient} body: #{body}"
-    puts e
-    false
+  def send(crecipient:, body:)
+    SMS.send(recipient: recipient, body: body)
   end
 
-  def self.invalid_phone?(phone)
-    GlobalPhone.validate(phone, :se) ? false : true
+  class << self
+    attr_accessor :configuration
   end
 
-  def self.normalize_phone(phone)
-    GlobalPhone.normalize(phone, :se)
+  def self.configure
+    self.configuration ||= Configuration.new
+    yield(configuration)
   end
 
-  def self.client
-    @client ||= SMSClient.new(account_sid: account_sid, auth_token: auth_token)
-  end
+  class Configuration
+    attr_accessor :from_number, :account_sid, :auth_token, :country_code
 
-  def self.from_number=(from_number)
-    @from_number = from_number
-  end
+    def initialize
+      @from_number = nil
+      @auth_token = nil
+      @account_sid = nil
+      @country_code = :se
+    end
 
-  def self.auth_token=(auth_token)
-    @auth_token = auth_token
-  end
+    def from_number
+      @from_number || ENV.fetch('TWILIO_NUMBER')
+    end
 
-  def self.account_sid=(account_sid)
-    @account_sid = account_sid
-  end
+    def auth_token
+      @auth_token || ENV.fetch('TWILIO_AUTH_TOKEN')
+    end
 
-  def self.from_number
-    @from_number || ENV.fetch('TWILIO_NUMBER')
-  end
-
-  def self.auth_token
-    @auth_token || ENV.fetch('TWILIO_AUTH_TOKEN')
-  end
-
-  def self.account_sid
-    @account_sid || ENV.fetch('TWILIO_ACCOUNT_SID')
+    def account_sid
+      @account_sid || ENV.fetch('TWILIO_ACCOUNT_SID')
+    end
   end
 end

@@ -8,6 +8,9 @@
 /spec/reports/
 /tmp/
 
+
+.byebug_history
+
 .env
 test.csv
 test1.csv
