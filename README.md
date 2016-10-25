@@ -23,15 +23,18 @@ Or install it yourself as:
 __Configuration__
 
 ```ruby
-StupidSMS.from_number = '...' # or set env var TWILIO_ACCOUNT_SID
-StupidSMS.auth_token  = '...' # or set env var TWILIO_AUTH_TOKEN
-StupidSMS.account_sid = '...' # or set env var TWILIO_NUMBER
+StupidSMS.configure do |config|
+  config.from_number  = '...' # or set env var TWILIO_ACCOUNT_SID
+  config.auth_token   = '...' # or set env var TWILIO_AUTH_TOKEN
+  config.account_sid  = '...' # or set env var TWILIO_NUMBER
+  config.country_code = 'SE' # two character country code (SE is the default)
+end
 ```
 
 __Send one SMS__:
 
 ```ruby
-StupidSMS.send_message(recipient: recipient, body: body)
+StupidSMS.send(recipient: recipient, body: body)
 ```
 
 __Send SMS in bulk__:
@@ -56,8 +59,38 @@ template = 'Hi %{first_name}!'
 StupidSMS.send_in_bulk(csv_string: csv, template: template)
 ```
 
+full options:
+
+```ruby
+csv = File.read('file.csv')
+StupidSMS.send_in_bulk(
+  csv_string: csv,
+  template: 'Hello World!',
+  delimiter: ',',
+  dry_run: false,
+  max_threads: 5
+)
+```
+
+__CLI__
+
 ```bash
-stupid_sms --csv testfile.csv --delimiter=, --template template.txt --dry-run=true
+stupid_sms --csv testfile.csv --template template.txt --dry-run=true
+```
+
+
+```
+Usage: stupid_sms [options]
+        --csv=file.csv               CSV file path (a phone header column is required)
+        --template=template.txt      Template file path (note: you need to escape % with %%)
+        --delimiter=;                CSV delimiter (default: ,)
+        --country-code=se            Country code (default: se)
+        --max-threads=5              Max parallel threads (default: 5)
+        --from-number="+46735000000" Twilio from number
+        --account-sid=se             Twilio account SID
+        --auth-token=XXXYYYZZZ       Twilio auth token
+        --[no-]dry-run               Dry run (default: true)
+    -h, --help                       How to use
 ```
 
 ## Development

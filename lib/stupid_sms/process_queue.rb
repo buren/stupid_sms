@@ -20,7 +20,7 @@ module StupidSMS
       threads = @max_threads.times.map do
         Thread.new do
           # We need one client per Thread since the Twilio client is not thread safe
-          client = build_sms_client
+          client = SMSClient.new
 
           results = { send_count: 0, longest_body: 0, failed_count: 0 }
           until @sms_queue.empty?
@@ -67,7 +67,7 @@ module StupidSMS
                     end
 
       if send_status
-        sms_count = (body.length / MAX_SMS_LENGTH).floor + 1 # Number of SMS sent
+        sms_count = (body.length / (MAX_SMS_LENGTH - 1)).floor + 1 # Number of SMS sent
         return { send_count: sms_count, length: body.length, success: true }
       end
 
@@ -92,13 +92,6 @@ module StupidSMS
         failed_count: failed_count,
         recipients_count: @recipients_count
       }
-    end
-
-    def build_sms_client
-      account_sid = StupidSMS.configuration.account_sid
-      auth_token = StupidSMS.configuration.auth_token
-
-      SMSClient.new(account_sid: account_sid, auth_token: auth_token)
     end
   end
 end

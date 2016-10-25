@@ -36,6 +36,10 @@ module StupidSMS
     puts "Sent messages: #{summary.fetch(:successfully_sent_count)}"
   end
 
+  def send(crecipient:, body:)
+    SMS.send(recipient: recipient, body: body)
+  end
+
   class << self
     attr_accessor :configuration
   end

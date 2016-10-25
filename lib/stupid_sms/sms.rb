@@ -1,6 +1,6 @@
 module StupidSMS
   module SMS
-    def self.send(client:, recipient:, body:)
+    def self.send(client: SMSClient.new, recipient:, body:)
       from_number = StupidSMS.configuration.from_number
       client.send_message(from: from_number, to: recipient, body: body)
       true
